@@ -4,6 +4,7 @@ from aiogram import Bot, types, Dispatcher
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types.input_file import FSInputFile
 import sqlite3
 
 from db import add_budget, set_budget, get_budget, get_report, add_income
@@ -38,14 +39,14 @@ async def main():
 async def start_command(message : types.Message):
     res = add_budget(cursor,message.from_user.id)
     if res == "EXISTS":
-        await message.reply("Приветствуем вас снова. Получить список всех команд: /help")
+        await message.answer("Приветствуем вас снова. Получить список всех команд: /help")
     elif res == "SUCCESS":
-        await message.reply("Приветствуем вас. Ваш стартовый бюджет: 0. Вы можете установить его с помощью /setbudget. Все команды: /help")
+        await message.answer("Приветствуем вас. Ваш стартовый бюджет: 0. Вы можете установить его с помощью /setbudget. Все команды: /help")
 
 
 @dp.message(Command("help"))
 async def process_start_command(message: types.Message):
-    await message.reply(''' Вот все доступные команды бота:
+    await message.answer(''' Вот все доступные команды бота:
 /addincome - Добавление дохода\n
 /addexpense - Добавление расхода\n
 /setbudget - Установка бюджета\n
@@ -101,8 +102,18 @@ async def cmd_balance(message: types.Message):
 
 @dp.message(Command("report"))
 async def cmd_report(message: types.Message):
-    await message.answer(get_report(cursor,message.from_user.id))
-
+    x = get_report(cursor,message.from_user.id)
+    if len(x) != 2:
+        await message.answer(x)
+    else:
+        path = x[1]
+        content = x[0]
+        photo = FSInputFile(path)
+        await bot.send_photo(message.chat.id,photo=photo,caption=content)
+        try:
+            os.remove(path)
+        except:
+            pass
 
 if __name__ == "__main__":
     asyncio.run(main())

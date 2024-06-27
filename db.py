@@ -1,7 +1,6 @@
+import matplotlib.pyplot as plt
+
 def add_income(cursor,userid,val,desc):
-    cursor.execute(f'''
-                    INSERT INTO HISTORY (id,val,description,cdate) VALUES ('{userid}',{val},'{desc}',date('now'))
-    ''')
     l = ""
     if val > 0:
         l = "+"
@@ -12,6 +11,9 @@ def add_income(cursor,userid,val,desc):
     cursor.execute(f'''
                     UPDATE USERS SET BALANCE=BALANCE{l}{val}
                    ''')
+    cursor.execute(f'''
+                    INSERT INTO HISTORY (id,val,description,cdate) VALUES ('{userid}',{val},'{desc}',date('now'))
+    ''')
     return "SUCCESS"
 
 
@@ -48,6 +50,10 @@ def get_report(cursor,userid):
     hist = cursor.fetchall()
     hist_form = 'Ваша история доходов и расходов:\n\n'
     est = False
+    bu = get_budget(cursor,userid)
+    x = ['0']
+    y = [bu]
+    ind = 1
     for i in hist:
         est = True
         val = i[1]
@@ -60,6 +66,12 @@ def get_report(cursor,userid):
         else:
             emj = "• Расход"
         hist_form += f'{emj}: {val} - {description} {date}\n\n'
+        x.append(str(ind))
+        y.append(bu)
+        bu += i[1]
+        ind += 1
     if est == False:
         return "У вас пока нет расходов и доходов"
-    return hist_form
+    plt.bar(x,y)
+    plt.savefig(f'{userid}.png')
+    return [hist_form,f'{userid}.png']
